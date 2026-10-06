@@ -100,3 +100,23 @@ Before final timing, executable paths were made repository-relative and the publ
 ## Per-seed plotting data
 
 The derived summary now includes seed-sorted `records` for every cohort, carrying success flags, solve/actual-stop seconds, and stop reasons. Existing aggregate fields are unchanged. Failure points are retained rather than omitted or assigned a made-up solve time. The protocol/aggregation selection passed 10 tests, including the new ordering and actual-stop checks; this is a reporting change, not a new experiment or a policy change.
+
+## Completed final comparison
+
+All 28 final chunks completed successfully. The fixed plan produced 140 records: 20 seeds each for CPU PPO, ARS and CEM on each mandatory task, and five seeds each for SB3 Zoo and CleanRL. All 140 reached the threshold before their protocol limits; no final failure was dropped. [The summary](../results/summary.json) links each raw record, and [batch logs](../results/batches/) retain the bounded invocations.
+
+The table is generated with `nice -n 19 uv run python summarize.py --input results/final --output results/summary.json`. Conditional median seconds are:
+
+| Method | CartPole | Acrobot |
+|---|---:|---:|
+| CPU PPO | 4.15 | 25.01 |
+| ARS | 1.08 | 28.15 |
+| CEM | 1.15 | 15.34 |
+| SB3 Zoo | 4.72 | 10.05 |
+| CleanRL | 5.55 | 15.15 |
+
+The candidate is not the fastest method. Linear search has the lowest observed CartPole times, and SB3 Zoo the lowest Acrobot median. The library cohorts are smaller, training objectives/settings differ, and this is not a general implementation ranking.
+
+Two CPU PPO seeds qualified at initialization: [CartPole seed 4](../results/final/CartPole-v1__ppo-cpu__zoo-shape__004.json) and [Acrobot seed 19](../results/final/Acrobot-v1__ppo-cpu__default__019.json). They remain in the planned denominator; the fixed protocol measures qualification time, not necessarily learning time. Final LunarLander measurement was not run.
+
+The final local correctness/evidence suite passed 57 tests with three upstream SWIG deprecation warnings. Ruff passed and its format check found 18 files already formatted. Commands and outcomes are recorded in [results/checks.json](../results/checks.json); CI runs the same checks.

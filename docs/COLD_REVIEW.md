@@ -77,3 +77,34 @@ I read the relevant pinned primary sources rather than accepting the adapters ow
 ## Main-owned verification and later evidence review
 
 No verification was executed by this reviewer. Main should retain outcomes for the exact CI commands in `.github/workflows/ci.yml`: `uv run ruff check .`, `uv run ruff format --check .`, and `uv run pytest -q` on the final integrated tree after the data-dependent files land. The later README/results pass should check raw cohort completeness, first-pass/deadline arithmetic, conditional spread, censoring language, benchmark batch provenance, and each published number against its linked record. This intermediate review approves proceeding with measurement, not publishing unobserved results.
+
+
+## Final-data assessment — 2026-10-06
+
+This section supersedes the earlier pending-results/test-coverage statements without rewriting the historical review. I re-read the README, selected plan, complete summary, final-record inventory, initialization-pass records, updated drivers/tests, check evidence and reachable external timing records. No tests, builds, linters, formatters or experiments were run by this reviewer. Only this review document was edited.
+
+**Verdict: no substantive correctness or evidence-consistency blocker found. The published result is defensible as the stated small, fixed-set qualification-time comparison.** It is a useful negative result for the CPU PPO candidate, not evidence that batching physics generally improves time to learn.
+
+### Results and cohorts
+
+The ten groups in `results/summary.json` match `configs/final.json`: both mandatory tasks, custom PPO/ARS/CEM seeds 0–19 and library seeds 0–4, totaling 140 records. The final directory inventory contains those cohorts; summary file references and seed-sorted plotting records retain every planned seed. All ten groups report complete success, and a source search of final records found no unsuccessful outcome, worker error, nonzero return code, watchdog kill or non-final phase. The exercised data-consistency tests recorded by main additionally check exact plan equality, duplicates, evaluation return counts/means, threshold/deadline flags, first-pass placement and aggregate recomputation (`tests/test_results.py`). This is not an independently rerun acceptance suite.
+
+All ten README medians, quartiles and success fractions agree with the summary after rounding to two decimal places. CartPole medians are ARS 1.08, CEM 1.15, candidate PPO 4.15, Zoo PPO 4.72 and CleanRL 5.55 seconds. Acrobot medians are Zoo PPO 10.05, CleanRL 15.15, CEM 15.34, candidate PPO 25.01 and ARS 28.15 seconds. The README correctly says Zoo has the *lowest observed* Acrobot median, states unequal cohort sizes, and does not claim the candidate wins. No final LunarLander group exists; its single-seed development attempts remain explicitly separate.
+
+Two candidate policies pass before training: CartPole seed 4 has `steps=0`, all 100 returns equal to 500, and qualification time 1.3868 seconds; Acrobot seed 19 has `steps=0`, mean return -95.57 and qualification time 1.4257 seconds. Both remain in their cohorts. The README explicitly discloses initialization qualification and links the Acrobot record. Its opening now says qualify policies, so these observations are not misrepresented as learning progress. The unchanged protocol explicitly required initial evaluation.
+
+### Clocks, provenance, privacy and replication
+
+The public launcher still supplies the parent timestamp to the worker and uses the common deterministic 100-episode Gymnasium evaluator, unchanged thresholds, seed split and deadline checks. Portable executable paths and removal of a marker-only guard do not change the timing origin. CEM extraction preserves its equations, and its returned mean/std are actually consumed by the training branch.
+
+Reachable external driver source invokes the exclusive timing wrapper separately for all 28 selected chunks. Its append-only batch record contains indices 0–27 exactly once, all successful, with sequential non-overlapping invocations starting no earlier than the scheduled time; every interval is under 30 minutes. Public batch timestamps fall within their corresponding external invocation intervals. For example, the first public batch spans 05:01:25–05:01:49, and the last spans 06:25:26–06:27:08. Queue waits are outside worker clocks. This supports actual timing provenance beyond the portable published command strings; I did not independently monitor scheduler behavior while runs occurred. External artifacts are intentionally not copied into the tracked review.
+
+`measure.py` now launches nice-19 batches rather than owning machine exclusivity. The README accurately requires an otherwise idle CPU for replication. `--output` is forwarded through `measure.py` and `sweep.py` to `run.py`; seed-result overwrite refusal remains, and replication batch-log names are separate from original logs. The two driver tests cover routing and preservation. The documented three-command reproduction writes to a new result directory and does not delete originals.
+
+A repository content search found none of the prohibited home-path, private-launcher or workspace identifiers. Public commands use relative paths; `docs/RUNNING.md` explicitly explains publication normalization without claiming the observations changed. This search assesses the current publishable content, not historical Git objects or future additions.
+
+### Coverage and remaining limits
+
+The three previously identified coverage gaps now have concrete tests: scalar CEM elite/smoothing/floor behavior including stable ties, a real child-startup delay before worker imports, and an SB3 first update whose twenty Adam steps all precede the updated checkpoint. Main records Ruff success, 18 already-formatted files, and a full 57-pass suite with three upstream SWIG warnings in `results/checks.json`. I inspected that evidence and test source, not a new execution.
+
+The README carries the important remaining limits: reused evaluation seeds, one machine with warm OS caches and blocked method order, five-seed library cohorts, differing checkpoint grids/horizons/objectives, numerical rather than bitwise dynamics equivalence, and no final stretch cohort. Since all mandatory final seeds succeeded, informative early censoring does not affect this README table; the historical KM caveat still applies to development failures and later replications. No broad ranking, untouched-test generalization or physics-only speedup claim is warranted. No source repair or additional timing run is required by this final assessment.

@@ -1,5 +1,7 @@
 # Running the comparison
 
+Design and evidence: [protocol](PROTOCOL.md), [baseline settings](BASELINES.md), [dynamics checks](ENVIRONMENTS.md), [experiment log](LOG.md), [independent review](COLD_REVIEW.md), and [one proposed next comparison](NEXT.md).
+
 ## Installation and checks
 
 ```sh
@@ -7,7 +9,7 @@ uv sync --frozen --python 3.12
 uv run ruff check . && uv run ruff format --check . && uv run pytest -q
 ```
 
-The lockfile installs CPU Torch; no GPU is used. Box2D's isolated build gets SWIG from its pinned PyPI wheel through uv's extra build dependency. A C++ compiler is still required. The measured machine and compiler are in [results/machine.json](../results/machine.json). The pytest suite includes a small Box2D comparison; it does not train policies. CI runs the same three check commands separately.
+The lockfile installs CPU Torch; no GPU is used. Box2D's isolated build gets SWIG from its pinned PyPI wheel through uv's extra build dependency. A C++ compiler is still required. The measured machine and compiler are in [results/machine.json](../results/machine.json). The pytest suite includes a small Box2D comparison and one SB3 rollout/update for checkpoint ordering; it does not run benchmark cohorts. CI runs the same three check commands separately.
 
 ## Development
 

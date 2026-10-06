@@ -42,6 +42,18 @@
     {
       "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_protocol.py",
       "result": "10 passed; per-seed summaries sorted and actual failure stop times retained"
+    },
+    {
+      "command": "nice -n 19 uv run ruff check .",
+      "result": "All checks passed after final evidence-consistency tests were added"
+    },
+    {
+      "command": "nice -n 19 uv run ruff format --check .",
+      "result": "18 files already formatted"
+    },
+    {
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q",
+      "result": "57 passed, 3 upstream SWIG deprecation warnings, 3.39 seconds"
     }
   ]
 }
