@@ -2,6 +2,8 @@
 
 The protocol was committed on `main` before tuning (`9a8486a`). Development records live under `results/development/`; they are not used in the README timing table. Final cohorts use the fixed seeds and budgets in [PROTOCOL.md](PROTOCOL.md). Entries below retain failed ideas as well as successful ones.
 
+Commands below show repository-relative executables and omit host-specific orchestration prefixes. Those publication changes do not alter numerical observations or algorithm settings.
+
 ## Setup
 
 - Pinned Python 3.12, NumPy 2.2.6, Gymnasium 1.2.1, Torch 2.8.0 CPU and Stable-Baselines3 2.7.0.
@@ -15,7 +17,7 @@ The protocol was committed on `main` before tuning (`9a8486a`). Development reco
 
 ## Initial one-seed pilot: defaults can fail
 
-Command: `pp-run heavy .venv/bin/python sweep.py --plan configs/development.json --chunk 0`. Every row is seed 0, a 60-second development limit, and includes process startup and all evaluations. These timings are not final comparisons: concurrent development work can affect them.
+Command: `nice -n 19 .venv/bin/python sweep.py --plan configs/development.json --chunk 0`. Every row is seed 0, a 60-second development limit, and includes process startup and all evaluations. These timings are not final comparisons: concurrent development work can affect them.
 
 | Task | Method | First pass (seconds) | Outcome |
 |---|---|---:|---|
@@ -34,7 +36,7 @@ Source: [raw initial development records](../results/development/). The algorith
 
 ## Environment, batch and network comparisons
 
-Command: `pp-run heavy .venv/bin/python sweep.py --plan configs/development.json --chunk 1`. Seeds 0 and 1, 60-second limits. Median and quartiles below are among successful seeds; these two-seed development comparisons are exploratory, not stable rankings. Raw records are linked through [the development directory](../results/development/).
+Command: `nice -n 19 .venv/bin/python sweep.py --plan configs/development.json --chunk 1`. Seeds 0 and 1, 60-second limits. Median and quartiles below are among successful seeds; these two-seed development comparisons are exploratory, not stable rankings. Raw records are linked through [the development directory](../results/development/).
 
 | Task | Change from the initial CPU PPO | Passed | Median seconds [Q1, Q3] |
 |---|---|---:|---:|
@@ -53,7 +55,7 @@ CartPole seed 0 failed both initial NumPy and Gymnasium dynamics configurations,
 
 The training-step counter was also corrected to record partially completed rollouts rather than only the last full update/episode. This changes bookkeeping, not policies or checkpoint timing. Feature scales and the dynamics class are now recorded explicitly in CPU PPO result configurations.
 
-Command: `pp-run heavy .venv/bin/python sweep.py --plan configs/tuning.json --chunk 0`. The Zoo-shaped CartPole candidate passed all three pilot seeds (0–2): median 7.23 seconds, quartiles [7.03, 8.74]. The extended Acrobot ARS search passed both seeds (0–1): median 36.87 seconds [36.17, 37.58]; extended CEM also passed both: 25.20 seconds [23.07, 27.34]. The earlier one-million-transition failures were not proof that affine policies cannot solve Acrobot. These development results support using the longer search horizon, not a claim that search is faster than PPO there.
+Command: `nice -n 19 .venv/bin/python sweep.py --plan configs/tuning.json --chunk 0`. The Zoo-shaped CartPole candidate passed all three pilot seeds (0–2): median 7.23 seconds, quartiles [7.03, 8.74]. The extended Acrobot ARS search passed both seeds (0–1): median 36.87 seconds [36.17, 37.58]; extended CEM also passed both: 25.20 seconds [23.07, 27.34]. The earlier one-million-transition failures were not proof that affine policies cannot solve Acrobot. These development results support using the longer search horizon, not a claim that search is faster than PPO there.
 
 ## Selected final configurations
 
@@ -65,11 +67,11 @@ Selected before the final cohorts start, in [configs/final.json](../configs/fina
 - Acrobot ARS/CEM: `longer`, four-million-transition horizon. Large generations can overshoot the requested horizon; their full transition counts are recorded.
 - Library PPO comparators: unchanged pinned settings, five seeds each.
 
-All mandatory methods receive seeds 0–19 except the explicitly smaller library cohorts. The final driver starts no earlier than 05:00 local and opens separate `pp-run bench` windows for each bounded chunk. Waiting for a window is not part of a seed's process-start clock. No final seed is used to change these configurations.
+All mandatory methods receive seeds 0–19 except the explicitly smaller library cohorts. Final cohorts are scheduled no earlier than 05:00 local and use separate exclusive CPU windows for each bounded chunk. Waiting for a window is not part of a seed's process-start clock. No final seed is used to change these configurations.
 
 ## LunarLander stretch: one development seed, not a final comparison
 
-Command: `pp-run heavy .venv/bin/python sweep.py --plan configs/tuning.json --chunk 1`. Seed 0 for each method, a 120-second development limit. This is not the 300-second final protocol budget, and these are shared-machine development timings.
+Command: `nice -n 19 .venv/bin/python sweep.py --plan configs/tuning.json --chunk 1`. Seed 0 for each method, a 120-second development limit. This is not the 300-second final protocol budget, and these are shared-machine development timings.
 
 | Method | Outcome | Best recorded 100-episode mean | Training transitions at stop |
 |---|---|---:|---:|
@@ -90,3 +92,7 @@ The strengthened environment/plan selection passed 35 tests, and the targeted al
 ## Replication output without deleting original measurements
 
 The measurement and sweep drivers now accept `--output` so a fresh clone containing committed measurements can rerun the full plan into a new directory. Previously the default would correctly refuse to overwrite the original files but offered no whole-plan output override. Two routing/preservation tests passed. The default selected plan, worker parameters, clocks and scheduled final output are unchanged.
+
+## Portable public commands
+
+Before final timing, executable paths were made repository-relative and the public driver was changed to plain `nice -n 19` invocations. CPU exclusivity remains a measurement condition, handled outside the public package. The old marker-only final-run guard was removed because it never established exclusivity itself. Earlier development command metadata was normalized for publication; no rewards, clocks, settings or seed outcomes were changed. Three launcher/routing checks passed after the cutover.

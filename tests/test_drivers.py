@@ -36,7 +36,7 @@ def test_sweep_routes_replication_without_modifying_plan(monkeypatch, tmp_path):
     assert json.loads(plan.read_text())["output"] == str(tmp_path / "original")
 
 
-def test_measure_preserves_original_logs_and_calls_wrapper(monkeypatch, tmp_path):
+def test_measure_preserves_original_logs_and_uses_nice(monkeypatch, tmp_path):
     plan = plan_file(tmp_path)
     output = tmp_path / "replication"
     commands = []
@@ -49,7 +49,7 @@ def test_measure_preserves_original_logs_and_calls_wrapper(monkeypatch, tmp_path
     monkeypatch.setattr(measure.subprocess, "run", run)
     measure.main()
     command = commands[0]
-    assert command[1:7] == ["bench", "env", "PP_MODE=bench", "nice", "-n", "19"]
+    assert command[:3] == ["nice", "-n", "19"]
     assert command[command.index("--output") + 1] == str(output)
     log = tmp_path / "batches/plan__replication__000.json"
     assert json.loads(log.read_text())["command"] == command

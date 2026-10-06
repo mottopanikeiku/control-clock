@@ -1,4 +1,4 @@
-"""Run bounded final batches through pp-run bench, optionally after a stated time."""
+"""Run bounded final batches at nice 19, optionally after a stated time."""
 
 import argparse
 import json
@@ -14,7 +14,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, default=Path("configs/final.json"))
     parser.add_argument("--chunks", help="Half-open chunk range; default is all chunks")
-    parser.add_argument("--runner", default="/home/alp/Projects/profile-program/bin/pp-run")
     parser.add_argument("--not-before", help="ISO timestamp with time zone")
     parser.add_argument("--output", type=Path, help="New directory for a replication")
     args = parser.parse_args()
@@ -39,14 +38,10 @@ def main():
         if destination.exists():
             raise FileExistsError(f"Refusing to overwrite benchmark batch log {destination}")
         command = [
-            args.runner,
-            "bench",
-            "env",
-            "PP_MODE=bench",
             "nice",
             "-n",
             "19",
-            sys.executable,
+            os.path.relpath(sys.executable),
             "sweep.py",
             "--plan",
             str(args.plan),
@@ -64,7 +59,7 @@ def main():
                     "started_including_queue": begin,
                     "finished_including_queue": datetime.now().astimezone().isoformat(),
                     "returncode": result.returncode,
-                    "note": "Wrapper queue and inter-window waits are excluded from worker clocks.",
+                    "note": "Worker clocks start immediately before each child spawn.",
                 },
                 indent=2,
             )

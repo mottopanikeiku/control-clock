@@ -10,8 +10,8 @@
   "gcc": "16.2.1 20260819 (Red Hat 16.2.1-2)",
   "threads": 1,
   "accelerator": "none used",
-  "timing_wrapper": "/home/alp/Projects/profile-program/bin/pp-run bench",
-  "development_wrapper": "/home/alp/Projects/profile-program/bin/pp-run heavy",
+  "measurement_conditions": "Other CPU-heavy work excluded during each measurement batch",
+  "development_conditions": "Shared CPU with other development work",
   "nice": 19,
   "paid_compute_usd": 0
 }

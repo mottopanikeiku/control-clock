@@ -14,34 +14,34 @@ The lockfile installs CPU Torch; no GPU is used. Box2D's isolated build gets SWI
 Each entry in [configs/development.json](../configs/development.json) states task, method, seed range, variant and time limit. Chunks are bounded so they can share the machine:
 
 ```sh
-/home/alp/Projects/profile-program/bin/pp-run heavy .venv/bin/python sweep.py --plan configs/development.json --chunk 0
+nice -n 19 .venv/bin/python sweep.py --plan configs/development.json --chunk 0 --output results/development-replication
 ```
 
 Development timing is affected by other heavy work. It is kept as experiment history, not mixed into the main result. `docs/LOG.md` reports effects and unsuccessful attempts.
 
 ## Final measurements
 
-Each final invocation uses `pp-run bench`, a single-thread environment, and nice 19. `configs/final.json` is the exact seed plan. Run each chunk separately; its five-seed Acrobot batches are bounded by the task's fixed 300-second per-seed budget. The shared wrapper enforces benchmark exclusivity and a gap between windows. Dependency installation takes place before measurement.
+Final measurements use an otherwise idle CPU, a single-thread numeric-library environment, and nice 19. `configs/final.json` is the exact seed plan. Its five-seed Acrobot batches are bounded by the task's fixed 300-second per-seed budget. Dependency installation takes place before measurement. For a replication, stop other CPU-heavy work first.
 
 ```sh
-/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python sweep.py --plan configs/final.json --chunk 0 --output results/single-chunk
+nice -n 19 .venv/bin/python sweep.py --plan configs/final.json --chunk 0 --output results/single-chunk
 ```
 
-`measure.py` drives all chunks sequentially, opening a separate wrapper window for each. `--not-before` accepts a timezone-qualified ISO timestamp for shared-machine scheduling; waiting is outside the seed clocks. Use `--output` for a new replication directory: committed raw results are never overwritten. Batch command logs live in `results/batches/`, with a separate prefix for a replication.
+`measure.py` drives all chunks sequentially. `--not-before` accepts a timezone-qualified ISO timestamp; waiting is outside the seed clocks. Use `--output` for a new replication directory: committed raw results are never overwritten. Batch command logs live in `results/batches/`, with a separate prefix for a replication.
 
 ```sh
 .venv/bin/python measure.py --plan configs/final.json --output results/replication
 ```
 
-The deliberately explicit `PP_MODE=bench` marker is not itself an exclusivity mechanism: `pp-run bench` is required. Every worker starts in a new process. The launcher refuses to overwrite an existing seed result; select a new output directory for a replication rather than deleting original data. For one method/task independently:
+Every worker starts in a new process. The launcher refuses to overwrite an existing seed result; select a new output directory for a replication rather than deleting original data. For one method/task independently:
 
 ```sh
-/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python run.py --phase final --task CartPole-v1 --method cem --seeds 0:5 --output results/one-method
+nice -n 19 .venv/bin/python run.py --phase final --task CartPole-v1 --method cem --seeds 0:5 --output results/one-method
 ```
 
 Every raw JSON contains the worker command, launcher arguments, software versions, thread settings, full evaluation-return arrays, elapsed clock values, stop reason and unsuccessful seeds. The absolute monotonic start timestamp in a command is a trace value, not a reusable CLI argument; `run.py` generates it anew.
 
-The wrapper path is specific to the measured shared laptop and can be supplied with `measure.py --runner /path/to/pp-run`. On another host use the same exclusive-run wrapper or an equivalent dedicated-machine setup and record that change. Fresh processes do not imply cold disk caches: package files can remain in the OS page cache across seeds. CPU frequency and ordinary OS background activity are not pinned.
+Published commands use repository-relative paths and omit host-specific orchestration prefixes. Early development executable paths were normalized to their equivalent `.venv/bin/python`; no measurements were altered. Fresh processes do not imply cold disk caches: package files can remain in the OS page cache across seeds. CPU frequency and ordinary OS background activity are not pinned.
 
 ## Tables
 

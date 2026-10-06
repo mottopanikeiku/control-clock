@@ -37,16 +37,13 @@ def main():
     environment.update(
         OMP_NUM_THREADS="1", MKL_NUM_THREADS="1", OPENBLAS_NUM_THREADS="1", NUMEXPR_NUM_THREADS="1"
     )
-    if args.phase == "final" and os.environ.get("PP_MODE") != "bench":
-        # pp-run itself does not export PP_MODE; the command deliberately supplies it.
-        parser.error("final runs require PP_MODE=bench under pp-run bench")
     for seed in range(first, last):
         destination = args.output / f"{args.task}__{args.method}__{args.variant}__{seed:03}.json"
         if destination.exists():
             raise FileExistsError(f"Refusing to overwrite a seed result: {destination}")
         limit = args.limit if args.limit is not None else LIMITS[args.task]
         command = [
-            sys.executable,
+            os.path.relpath(sys.executable),
             "-m",
             "control_clock.worker",
             "--task",

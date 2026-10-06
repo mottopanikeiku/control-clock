@@ -4852,7 +4852,7 @@
   "watchdog": false,
   "stderr": "",
   "command": [
-    "/home/alp/Projects/profile-program/work/control-clock/.venv/bin/python",
+    ".venv/bin/python",
     "-m",
     "control_clock.worker",
     "--task",

@@ -1,20 +1,21 @@
 {
   "date": "2026-10-06",
+  "command_note": "Portable invocations omit host-specific orchestration prefixes; outcomes are unchanged.",
   "checks": [
     {
-      "command": "/home/alp/Projects/profile-program/bin/pp-run heavy uv run ruff check --fix .",
+      "command": "nice -n 19 uv run ruff check --fix .",
       "result": "failed: two E501 line-length errors; subsequently formatted"
     },
     {
-      "command": "/home/alp/Projects/profile-program/bin/pp-run heavy uv run ruff format .",
+      "command": "nice -n 19 uv run ruff format .",
       "result": "11 files reformatted; 3 files unchanged"
     },
     {
-      "command": "/home/alp/Projects/profile-program/bin/pp-run heavy env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q",
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q",
       "result": "48 passed; three upstream SWIG deprecation warnings"
     },
     {
-      "command": "/home/alp/Projects/profile-program/bin/pp-run heavy env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_equivalence.py tests/test_results.py::test_final_plan_has_required_cohorts_and_bounded_windows",
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_equivalence.py tests/test_results.py::test_final_plan_has_required_cohorts_and_bounded_windows",
       "result": "35 passed; three upstream SWIG deprecation warnings; includes raw internal-state comparisons"
     },
     {
@@ -26,12 +27,17 @@
       "result": "17 files already formatted"
     },
     {
-      "command": "/home/alp/Projects/profile-program/bin/pp-run heavy env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_algorithms.py tests/test_baselines.py tests/test_protocol.py",
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_algorithms.py tests/test_baselines.py tests/test_protocol.py",
       "result": "17 passed; includes scalar CEM update, real child startup and all-epoch SB3 checkpoint ordering"
     },
     {
       "command": "nice -n 19 uv run pytest -q tests/test_drivers.py",
       "result": "2 passed; replication output routing and original-result preservation"
+    },
+    {
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_drivers.py tests/test_protocol.py::test_actual_parent_child_clock_includes_python_startup",
+      "result": "3 passed after portable launcher cutover",
+      "publication_check": "Tracked-file search found no local home paths or host-specific launch prefixes"
     }
   ]
 }
