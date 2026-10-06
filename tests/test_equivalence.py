@@ -20,6 +20,11 @@ def assert_observations(actual, expected):
     np.testing.assert_allclose(actual, expected, atol=OBS_ATOL, rtol=OBS_RTOL)
 
 
+def assert_internal_states(batch, references):
+    expected = np.stack([env.unwrapped.state for env in references])
+    np.testing.assert_allclose(batch.state, expected, atol=OBS_ATOL, rtol=OBS_RTOL)
+
+
 def assert_transition(actual, expected):
     assert_observations(actual[0], expected[0])
     for actual_array, expected_array in zip(actual[1:], expected[1:], strict=True):
@@ -43,12 +48,14 @@ def test_many_seeded_random_sequences(task, sequence_seed):
         obs = batch.reset(seeds)
         expected = np.stack([env.reset(seed=s)[0] for env, s in zip(references, seeds)])
         assert_observations(obs, expected)
+        assert_internal_states(batch, references)
         assert batch.state.dtype == np.float64
         for _ in range(600):
             actions = rng.integers(0, batch.action_size, size=4)
             actual = batch.step(actions)
             expected = reference_step(references, actions)
             assert_transition(actual, expected)
+            assert_internal_states(batch, references)
             done = actual[2] | actual[3]
             if np.any(done):
                 final = actual[0].copy()
@@ -58,6 +65,7 @@ def test_many_seeded_random_sequences(task, sequence_seed):
                 reset_obs = batch.reset_done(done, seeds)
                 assert_observations(reset_obs, expected[0])
                 np.testing.assert_array_equal(reset_obs[~done], final[~done])
+                assert_internal_states(batch, references)
                 # Reset must not overwrite an already returned final observation.
                 np.testing.assert_array_equal(actual[0], final)
     finally:

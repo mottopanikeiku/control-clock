@@ -26,9 +26,9 @@ def candidate_returns(ctx, weights, env, scales, episodes, steps):
             actions = greedy_actions(weights, observations, scales)
             observations, rewards, terminated, truncated = env.step(actions, active=active)
             steps += int(active.sum())
+            ctx.steps = steps
             totals += rewards
             active &= ~(terminated | truncated)
-        ctx.steps = steps
     return totals / episodes, steps
 
 
@@ -44,10 +44,19 @@ def ars_update(weights, directions, positive, negative, top, learning_rate):
     )
 
 
+def cem_update(mean, std, candidates, scores, elite_count):
+    """Fit and smooth the elite Gaussian; stable ordering defines score ties."""
+    elites = candidates[np.argsort(scores, kind="stable")[-elite_count:]]
+    return (
+        0.5 * mean + 0.5 * elites.mean(axis=0),
+        np.maximum(0.05, 0.5 * std + 0.5 * elites.std(axis=0)),
+    )
+
+
 def train(ctx):
     method = ctx.configuration["method"]
     variant = ctx.configuration["variant"]
-    if variant not in ("default", "more-episodes", "larger-population"):
+    if variant not in ("default", "more-episodes", "larger-population", "longer"):
         raise ValueError(f"unknown policy-search variant: {variant}")
     population = 64 if ctx.task != "LunarLander-v3" else 32
     episodes = 4
@@ -55,6 +64,7 @@ def train(ctx):
         episodes = 8
     elif variant == "larger-population":
         population *= 2
+    horizon = 4_000_000 if variant == "longer" else 1_000_000
     directions_count = population // 2
     env = make_vector(ctx.task, population)
     scales = np.ones(env.observation_size, dtype=np.float64)
@@ -70,7 +80,7 @@ def train(ctx):
         policy="affine deterministic argmax",
         population=population,
         training_episodes_per_candidate=episodes,
-        horizon=1_000_000,
+        horizon=horizon,
         scales=scales.tolist(),
         training_reset_seeds="common across candidates, fresh each episode",
     )
@@ -92,7 +102,7 @@ def train(ctx):
 
     try:
         ctx.checkpoint(policy, steps)
-        while steps < 1_000_000:
+        while steps < horizon:
             if method == "ars":
                 directions = rng.standard_normal((directions_count, *shape))
                 candidates = np.concatenate(
@@ -110,9 +120,7 @@ def train(ctx):
             else:
                 candidates = rng.normal(weights, std, size=(population, *shape))
                 scores, steps = candidate_returns(ctx, candidates, env, scales, episodes, steps)
-                elites = candidates[np.argsort(scores, kind="stable")[-population // 8 :]]
-                weights = 0.5 * weights + 0.5 * elites.mean(axis=0)
-                std = np.maximum(0.05, 0.5 * std + 0.5 * elites.std(axis=0))
+                weights, std = cem_update(weights, std, candidates, scores, population // 8)
             ctx.checkpoint(policy, steps)
     finally:
         env.close()

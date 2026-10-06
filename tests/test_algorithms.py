@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from control_clock.ppo import advantages_reference
-from control_clock.search import ars_update, greedy_actions
+from control_clock.search import ars_update, cem_update, greedy_actions
 
 
 def test_gae_matches_numpy_reference_with_truncation():
@@ -58,3 +58,28 @@ def test_affine_policy_matches_scalar_reference():
     np.testing.assert_array_equal(
         greedy_actions(np.zeros((3, 7)), observations, scales), np.zeros(10)
     )
+
+
+def test_cem_update_matches_scalar_reference_and_stable_ties():
+    rng = np.random.default_rng(41)
+    mean = rng.normal(size=(3, 7))
+    std = np.abs(rng.normal(size=(3, 7)))
+    candidates = rng.normal(size=(16, 3, 7))
+    scores = np.arange(16) % 4  # Ties retain ascending candidate order.
+    indices = sorted(range(16), key=lambda i: (scores[i], i))[-4:]
+    expected_mean = np.empty_like(mean)
+    expected_std = np.empty_like(std)
+    for action in range(3):
+        for feature in range(7):
+            values = [candidates[i, action, feature] for i in indices]
+            average = sum(values) / len(values)
+            variance = sum((value - average) ** 2 for value in values) / len(values)
+            expected_mean[action, feature] = 0.5 * mean[action, feature] + 0.5 * average
+            expected_std[action, feature] = max(
+                0.05, 0.5 * std[action, feature] + 0.5 * np.sqrt(variance)
+            )
+    actual_mean, actual_std = cem_update(mean, std, candidates, scores, 4)
+    np.testing.assert_allclose(actual_mean, expected_mean, atol=1e-14)
+    np.testing.assert_allclose(actual_std, expected_std, atol=1e-14)
+    _, collapsed_std = cem_update(mean, np.zeros_like(std), np.ones_like(candidates), scores, 4)
+    np.testing.assert_array_equal(collapsed_std, np.full_like(std, 0.05))

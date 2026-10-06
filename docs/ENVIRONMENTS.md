@@ -64,16 +64,17 @@ The nondefault NIPS equations, torque noise and custom reset bounds are not
 supported by this API. LunarLander preserves Box2D's native internal precision;
 the float64 internal-dynamics guarantee applies only to NumPy classic control.
 
-The fixed observation comparison is `numpy.testing.assert_allclose` with
+The fixed observation and internal-state comparison is `numpy.testing.assert_allclose` with
 **`atol=2e-6`, `rtol=2e-7`**. This permits float32 output rounding and small
 scalar-versus-array ufunc differences without feeding rounded observations
 back into the integrator. The maximum permitted discrepancy is
-`2e-6 + 2e-7 * abs(reference_observation)`; at Acrobot's largest velocity it is
+`2e-6 + 2e-7 * abs(reference_value)`; at Acrobot's largest velocity it is
 under `8e-6`. Rewards, termination and truncation flags are compared **exactly**;
 there is no tolerance for decisions or episode lengths.
 
-`tests/test_equivalence.py` compares every transition across seeded random
-sequences, independently reset slots, masked execution and the Gymnasium batch
+`tests/test_equivalence.py` compares every observation and the four internal
+state coordinates across seeded random classic sequences, as well as
+independently reset slots, masked execution and the Gymnasium batch
 fallback. It also exercises CartPole failure thresholds, Acrobot wrapping and
 velocity clipping, terminal rewards, full 500-step classic time limits, the
 1,000-step Lunar limit boundary and coincident termination/truncation. Boundary

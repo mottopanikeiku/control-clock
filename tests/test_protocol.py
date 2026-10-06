@@ -1,4 +1,9 @@
+import json
+import os
+import subprocess
+import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -100,3 +105,36 @@ def test_km_no_solved():
 
 def test_km_tied_events_before_censoring():
     assert km_median([record(0, True, 10), record(1, False, 10)]) == 10
+
+
+def test_actual_parent_child_clock_includes_python_startup(tmp_path):
+    # CPython imports sitecustomize before the worker module; a worker-local
+    # timestamp taken after imports would incorrectly exclude this delay.
+    (tmp_path / "sitecustomize.py").write_text("import time\ntime.sleep(0.08)\n")
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(tmp_path)
+    root = Path(__file__).resolve().parents[1]
+    destination = tmp_path / "results"
+    command = [
+        sys.executable,
+        "run.py",
+        "--task",
+        "CartPole-v1",
+        "--method",
+        "cem",
+        "--seeds",
+        "0:1",
+        "--output",
+        str(destination),
+        "--phase",
+        "development",
+        "--limit",
+        "0.001",
+    ]
+    subprocess.run(command, cwd=root, env=environment, check=True, capture_output=True, timeout=15)
+    record = json.loads((destination / "CartPole-v1__cem__default__000.json").read_text())
+    assert record["stop_reason"] == "time limit"
+    assert not record["solved"]
+    assert record["evaluations"] == []
+    assert record["stop_seconds"] >= 0.08
+    assert record["parent_seconds"] >= record["stop_seconds"]

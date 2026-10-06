@@ -95,6 +95,10 @@ def train(ctx):
         config.update(envs=16, minibatch=256)
     elif variant == "wide":
         config.update(width=128, layers=2)
+    elif variant == "zoo-shape":
+        if ctx.task != "CartPole-v1":
+            raise ValueError("zoo-shape is a CartPole configuration")
+        config.update(envs=8, minibatch=256, width=64, layers=2, epochs=20, lr=0.001)
     elif variant == "gym-dynamics":
         pass
     elif variant != "default":
@@ -108,7 +112,8 @@ def train(ctx):
         adam_eps=1e-5,
         value_clip=False,
         advantage_normalization="batch",
-        lr_schedule="constant",
+        lr_schedule="linear" if variant == "zoo-shape" else "constant",
+        clip_schedule="linear" if variant == "zoo-shape" else "constant",
         truncated_bootstrap=True,
     )
     rng = np.random.default_rng(ctx.seed)
@@ -125,6 +130,7 @@ def train(ctx):
     scales = np.ones(env.observation_size, dtype=np.float32)
     if ctx.task == "Acrobot-v1":
         scales[-2:] = [4 * np.pi, 9 * np.pi]
+    ctx.configuration.update(observation_scales=scales.tolist(), dynamics=type(env).__name__)
 
     def tensor(obs):
         return torch.from_numpy(np.asarray(obs, dtype=np.float32) / scales)
@@ -169,6 +175,7 @@ def train(ctx):
                     else final_obs
                 )
                 steps += n
+                ctx.steps = steps
             advantages = advantages_reference(
                 rewards, values, next_values, terminated, dones, config["gamma"], config["lam"]
             )
@@ -182,6 +189,10 @@ def train(ctx):
                 flat_advantages.std() + 1e-8
             )
             batch_size = length * n
+            progress = 1.0 - steps / config["horizon"]
+            if variant == "zoo-shape":
+                optimizer.param_groups[0]["lr"] = config["lr"] * progress
+            clip = 0.2 * progress if variant == "zoo-shape" else 0.2
             for _ in range(config["epochs"]):
                 order = rng.permutation(batch_size)
                 for start in range(0, batch_size, config["minibatch"]):
@@ -194,7 +205,7 @@ def train(ctx):
                     ).exp()
                     advantage = flat_advantages[indices]
                     loss_policy = torch.maximum(
-                        -advantage * ratio, -advantage * ratio.clamp(0.8, 1.2)
+                        -advantage * ratio, -advantage * ratio.clamp(1 - clip, 1 + clip)
                     ).mean()
                     loss_value = 0.5 * (new_values - flat_returns[indices]).square().mean()
                     loss = (

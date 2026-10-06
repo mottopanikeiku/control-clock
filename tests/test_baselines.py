@@ -1,10 +1,12 @@
 import gymnasium as gym
 import numpy as np
+import pytest
 import torch
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from control_clock.cleanrl_baseline import Args, make_agent
 from control_clock.library_baselines import linear_schedule, load_settings
+from control_clock.protocol import Finished, RunContext
 
 
 def test_zoo_task_settings_and_schedules():
@@ -63,3 +65,45 @@ def test_cleanrl_defaults_and_same_step_reset():
         assert truncated[0]
     finally:
         envs.close()
+
+
+def test_sb3_checkpoint_follows_all_optimizer_epochs(monkeypatch):
+    import time
+
+    from stable_baselines3 import PPO
+
+    from control_clock.library_baselines import train
+
+    events = []
+    optimizer_steps = [0]
+    original_train = PPO.train
+    original_step = torch.optim.Adam.step
+
+    def recorded_step(optimizer, *args, **kwargs):
+        optimizer_steps[0] += 1
+        return original_step(optimizer, *args, **kwargs)
+
+    def recorded_train(model):
+        events.append("train begin")
+        original_train(model)
+        assert model._n_updates == 20
+        events.append("train end")
+
+    class WiringContext(RunContext):
+        def checkpoint(self, policy, steps, *, force=False):
+            assert policy(np.zeros((100, 4), dtype=np.float32)).shape == (100,)
+            if steps == 0:
+                events.append("initial checkpoint")
+                return
+            assert steps == 256
+            assert events[-1] == "train end"
+            assert optimizer_steps[0] == 20
+            events.append("updated checkpoint")
+            raise Finished("wiring test complete")
+
+    monkeypatch.setattr(torch.optim.Adam, "step", recorded_step)
+    monkeypatch.setattr(PPO, "train", recorded_train)
+    ctx = WiringContext("CartPole-v1", 0, time.perf_counter(), 120)
+    with pytest.raises(Finished, match="wiring test complete"):
+        train(ctx)
+    assert events == ["initial checkpoint", "train begin", "train end", "updated checkpoint"]
