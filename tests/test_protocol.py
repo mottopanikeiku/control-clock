@@ -1,0 +1,102 @@
+import time
+
+import numpy as np
+import pytest
+
+from control_clock.protocol import EVAL_SEEDS, Finished, RunContext
+from summarize import km_median, summarize
+
+
+def test_training_seeds_disjoint():
+    ctx = RunContext("CartPole-v1", 19, time.perf_counter(), 120)
+    seeds = ctx.training_seeds(100_000)
+    assert all(0 <= seed < min(EVAL_SEEDS) for seed in seeds)
+    assert len(set(EVAL_SEEDS)) == 100
+
+
+def test_initial_evaluation_includes_clock_offset():
+    ctx = RunContext("CartPole-v1", 0, time.perf_counter() - 10, 120)
+    try:
+        ctx.checkpoint(lambda observations: np.zeros(len(observations), dtype=int), 0)
+        assert len(ctx.evaluations) == 1
+        entry = ctx.evaluations[0]
+        assert len(entry["returns"]) == 100
+        assert entry["elapsed_seconds"] >= 10 + entry["evaluation_seconds"]
+        assert not entry["passes"]
+        ctx.checkpoint(lambda observations: np.zeros(len(observations), dtype=int), 1)
+        assert len(ctx.evaluations) == 1
+    finally:
+        ctx.close()
+
+
+def test_time_limit():
+    ctx = RunContext("CartPole-v1", 0, time.perf_counter() - 2, 1)
+    with pytest.raises(Finished, match="time limit"):
+        ctx.checkpoint(lambda observations: np.zeros(len(observations), dtype=int), 0)
+    assert not ctx.solved
+
+
+@pytest.mark.parametrize("finish_time,expected_success", [(0.5, True), (2.0, False)])
+def test_passing_evaluation_must_finish_before_deadline(monkeypatch, finish_time, expected_success):
+    from control_clock import protocol
+
+    clock = [0.0]
+    stepped = [0]
+
+    class OneStepEnv:
+        def reset(self, seed):
+            assert seed in EVAL_SEEDS
+            return np.zeros(4, dtype=np.float32), {}
+
+        def step(self, action):
+            stepped[0] += 1
+            if stepped[0] == 100:
+                clock[0] = finish_time
+            return np.zeros(4, dtype=np.float32), 500.0, True, False, {}
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(protocol.gym, "make", lambda task: OneStepEnv())
+    monkeypatch.setattr(protocol.time, "perf_counter", lambda: clock[0])
+    ctx = RunContext("CartPole-v1", 0, 0.0, 1.0)
+    try:
+        with pytest.raises(Finished, match="solved" if expected_success else "time limit"):
+            ctx.checkpoint(lambda obs: np.zeros(len(obs), dtype=int), 0)
+        assert ctx.solved is expected_success
+        assert ctx.evaluations[0]["evaluation_seconds"] == finish_time
+        assert ctx.solve_seconds == (finish_time if expected_success else None)
+    finally:
+        ctx.close()
+
+
+def record(seed, solved, seconds):
+    return dict(
+        seed=seed,
+        solved=solved,
+        solve_seconds=seconds if solved else None,
+        stop_seconds=seconds,
+        parent_seconds=seconds + 0.01,
+        limit_seconds=120,
+        stop_reason="solved" if solved else "time limit",
+    )
+
+
+def test_summary_retains_failures():
+    records = [record(0, True, 10), record(1, True, 20), record(2, False, 120)]
+    summary = summarize(records)
+    assert summary["seeds"] == 3
+    assert summary["successes"] == 2
+    assert summary["success_rate"] == 2 / 3
+    assert summary["conditional_median_seconds"] == 15
+    assert summary["conditional_q25_seconds"] == 12.5
+    assert summary["conditional_q75_seconds"] == 17.5
+    assert summary["km_median_seconds"] == 20
+
+
+def test_km_no_solved():
+    assert km_median([record(0, False, 120)]) is None
+
+
+def test_km_tied_events_before_censoring():
+    assert km_median([record(0, True, 10), record(1, False, 10)]) == 10

@@ -1,6 +1,6 @@
 # Process-start control benchmark
 
-Recorded before implementation and tuning: 2026-10-06 02:39 PDT.
+Recorded before implementation and tuning on 2026-10-06. The initial Git commit timestamps this document; no minute-level creation time was measured.
 
 ## Question and endpoints
 
