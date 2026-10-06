@@ -86,3 +86,7 @@ Sources: `results/development/LunarLander-v3__*__default__000.json`. The pinned 
 The independent reviewer found no correctness blocker but identified interpretation limits and three useful test gaps; the historical assessment is in [COLD_REVIEW.md](COLD_REVIEW.md). I added raw internal-state comparisons to the dynamics tests, a scalar reference for the existing CEM update, a real parent/child startup-delay check, and an SB3 test that executes every optimizer epoch of the first rollout before allowing its checkpoint. The CEM equations were extracted without changing their elite selection, smoothing or standard-deviation floor.
 
 The strengthened environment/plan selection passed 35 tests, and the targeted algorithm/baseline/clock selection passed 17 tests. [results/checks.json](../results/checks.json) records the exact commands and earlier failures. These are correctness checks, not timing comparisons; the complete data-dependent suite is run after the final cohort and summary exist.
+
+## Replication output without deleting original measurements
+
+The measurement and sweep drivers now accept `--output` so a fresh clone containing committed measurements can rerun the full plan into a new directory. Previously the default would correctly refuse to overwrite the original files but offered no whole-plan output override. Two routing/preservation tests passed. The default selected plan, worker parameters, clocks and scheduled final output are unchanged.

@@ -28,6 +28,10 @@
     {
       "command": "/home/alp/Projects/profile-program/bin/pp-run heavy env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_algorithms.py tests/test_baselines.py tests/test_protocol.py",
       "result": "17 passed; includes scalar CEM update, real child startup and all-epoch SB3 checkpoint ordering"
+    },
+    {
+      "command": "nice -n 19 uv run pytest -q tests/test_drivers.py",
+      "result": "2 passed; replication output routing and original-result preservation"
     }
   ]
 }

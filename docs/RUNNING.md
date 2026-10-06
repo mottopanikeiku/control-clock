@@ -24,19 +24,19 @@ Development timing is affected by other heavy work. It is kept as experiment his
 Each final invocation uses `pp-run bench`, a single-thread environment, and nice 19. `configs/final.json` is the exact seed plan. Run each chunk separately; its five-seed Acrobot batches are bounded by the task's fixed 300-second per-seed budget. The shared wrapper enforces benchmark exclusivity and a gap between windows. Dependency installation takes place before measurement.
 
 ```sh
-/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python sweep.py --plan configs/final.json --chunk 0
+/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python sweep.py --plan configs/final.json --chunk 0 --output results/single-chunk
 ```
 
-`measure.py` drives all chunks sequentially, opening a separate wrapper window for each. `--not-before` accepts a timezone-qualified ISO timestamp for shared-machine scheduling; waiting is outside the seed clocks. Batch command logs live in `results/batches/`.
+`measure.py` drives all chunks sequentially, opening a separate wrapper window for each. `--not-before` accepts a timezone-qualified ISO timestamp for shared-machine scheduling; waiting is outside the seed clocks. Use `--output` for a new replication directory: committed raw results are never overwritten. Batch command logs live in `results/batches/`, with a separate prefix for a replication.
 
 ```sh
-.venv/bin/python measure.py --plan configs/final.json
+.venv/bin/python measure.py --plan configs/final.json --output results/replication
 ```
 
 The deliberately explicit `PP_MODE=bench` marker is not itself an exclusivity mechanism: `pp-run bench` is required. Every worker starts in a new process. The launcher refuses to overwrite an existing seed result; select a new output directory for a replication rather than deleting original data. For one method/task independently:
 
 ```sh
-/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python run.py --phase final --task CartPole-v1 --method cem --seeds 0:5 --output results/replication
+/home/alp/Projects/profile-program/bin/pp-run bench env PP_MODE=bench nice -n 19 .venv/bin/python run.py --phase final --task CartPole-v1 --method cem --seeds 0:5 --output results/one-method
 ```
 
 Every raw JSON contains the worker command, launcher arguments, software versions, thread settings, full evaluation-return arrays, elapsed clock values, stop reason and unsuccessful seeds. The absolute monotonic start timestamp in a command is a trace value, not a reusable CLI argument; `run.py` generates it anew.

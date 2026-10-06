@@ -16,6 +16,7 @@ def main():
     parser.add_argument("--chunks", help="Half-open chunk range; default is all chunks")
     parser.add_argument("--runner", default="/home/alp/Projects/profile-program/bin/pp-run")
     parser.add_argument("--not-before", help="ISO timestamp with time zone")
+    parser.add_argument("--output", type=Path, help="New directory for a replication")
     args = parser.parse_args()
     plan = json.loads(args.plan.read_text())
     if plan["phase"] != "final":
@@ -28,12 +29,13 @@ def main():
     first, last = map(int, args.chunks.split(":")) if args.chunks else (0, len(plan["chunks"]))
     if not 0 <= first < last <= len(plan["chunks"]):
         parser.error("chunk range is outside the plan")
-    output = Path(plan["output"])
+    output = args.output if args.output is not None else Path(plan["output"])
     output.mkdir(parents=True, exist_ok=True)
     log_directory = output.parent / "batches"
     log_directory.mkdir(parents=True, exist_ok=True)
+    log_name = args.plan.stem if args.output is None else f"{args.plan.stem}__{output.name}"
     for index in range(first, last):
-        destination = log_directory / f"{args.plan.stem}__{index:03}.json"
+        destination = log_directory / f"{log_name}__{index:03}.json"
         if destination.exists():
             raise FileExistsError(f"Refusing to overwrite benchmark batch log {destination}")
         command = [
@@ -51,6 +53,8 @@ def main():
             "--chunk",
             str(index),
         ]
+        if args.output is not None:
+            command.extend(("--output", str(args.output)))
         begin = datetime.now().astimezone().isoformat()
         result = subprocess.run(command, env=os.environ.copy())
         destination.write_text(
