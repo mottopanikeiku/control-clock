@@ -99,6 +99,20 @@ def test_summary_retains_failures():
     assert summary["km_median_seconds"] == 20
 
 
+def test_summary_seed_records_are_sorted_and_keep_actual_stop_times():
+    failed = record(2, False, 122.5)
+    watchdog = record(3, False, 125)
+    del watchdog["stop_seconds"]
+    watchdog["stop_reason"] = "watchdog"
+    records = [watchdog, failed, record(0, True, 10)]
+    entries = summarize(records)["records"]
+    assert [entry["seed"] for entry in entries] == [0, 2, 3]
+    assert entries[0] == {"seed": 0, "solved": True, "seconds": 10, "stop_reason": "solved"}
+    assert entries[1] == {"seed": 2, "solved": False, "seconds": 122.5, "stop_reason": "time limit"}
+    assert entries[2]["seconds"] == watchdog["parent_seconds"]
+    assert entries[2]["stop_reason"] == "watchdog"
+
+
 def test_km_no_solved():
     assert km_median([record(0, False, 120)]) is None
 

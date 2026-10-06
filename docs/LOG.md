@@ -96,3 +96,7 @@ The measurement and sweep drivers now accept `--output` so a fresh clone contain
 ## Portable public commands
 
 Before final timing, executable paths were made repository-relative and the public driver was changed to plain `nice -n 19` invocations. CPU exclusivity remains a measurement condition, handled outside the public package. The old marker-only final-run guard was removed because it never established exclusivity itself. Earlier development command metadata was normalized for publication; no rewards, clocks, settings or seed outcomes were changed. Three launcher/routing checks passed after the cutover.
+
+## Per-seed plotting data
+
+The derived summary now includes seed-sorted `records` for every cohort, carrying success flags, solve/actual-stop seconds, and stop reasons. Existing aggregate fields are unchanged. Failure points are retained rather than omitted or assigned a made-up solve time. The protocol/aggregation selection passed 10 tests, including the new ordering and actual-stop checks; this is a reporting change, not a new experiment or a policy change.

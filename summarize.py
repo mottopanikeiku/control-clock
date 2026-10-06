@@ -39,6 +39,19 @@ def summarize(records):
     return {
         "seeds": len(records),
         "seed_ids": sorted(record["seed"] for record in records),
+        "records": [
+            {
+                "seed": record["seed"],
+                "solved": record["solved"],
+                "seconds": (
+                    record["solve_seconds"]
+                    if record["solved"]
+                    else record.get("stop_seconds", record["parent_seconds"])
+                ),
+                "stop_reason": record["stop_reason"],
+            }
+            for record in sorted(records, key=lambda item: item["seed"])
+        ],
         "successes": len(solved),
         "success_rate": len(solved) / len(records),
         "conditional_q25_seconds": quantiles[0],

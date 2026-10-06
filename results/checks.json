@@ -38,6 +38,10 @@
       "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_drivers.py tests/test_protocol.py::test_actual_parent_child_clock_includes_python_startup",
       "result": "3 passed after portable launcher cutover",
       "publication_check": "Tracked-file search found no local home paths or host-specific launch prefixes"
+    },
+    {
+      "command": "nice -n 19 env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 uv run pytest -q tests/test_protocol.py",
+      "result": "10 passed; per-seed summaries sorted and actual failure stop times retained"
     }
   ]
 }
