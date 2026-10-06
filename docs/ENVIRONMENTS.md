@@ -82,7 +82,7 @@ fixtures directly set matching internal reference states; the full time-limit
 test holds state near the task's starting equilibrium without resetting its
 elapsed counter, to isolate truncation from failure dynamics. Every dynamics
 implementation is checked against upstream rather than a duplicated local
-set of equations. The integration owner runs the suite after merging slices:
+set of equations. Run the equivalence tests with:
 `uv run pytest tests/test_equivalence.py`.
 
 ## Sources and licenses

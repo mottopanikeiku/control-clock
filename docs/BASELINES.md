@@ -141,12 +141,25 @@ the shared checkpoint. The evaluation actor uses `torch.no_grad()` and no
 stochastic action sampling, so it neither trains the network nor advances the
 training action RNG. Returns are always raw Gymnasium episode returns.
 
-## Integration checks
+## Test coverage
 
-No builds, tests, lint, formatter or training runs were executed while writing
-these baselines. Before measuring, the integration owner should check pinned
-settings, deterministic action shape/tie handling, frozen SB3 normalization,
-SAME_STEP termination/truncation transitions, checkpoint-after-update ordering,
-and environment cleanup when `Finished` interrupts initialization, rollout or
-optimization. Training measurements must use the shared harness and protocol,
-not direct timing of a PPO update.
+The current baseline tests cover the following properties:
+
+| Property | Test and scope |
+|---|---|
+| Pinned settings and schedules | [`test_baselines.py::test_zoo_task_settings_and_schedules`](../tests/test_baselines.py#L12) checks selected task-specific Zoo fields and the linear schedule. [`test_baselines.py::test_cleanrl_defaults_and_same_step_reset`](../tests/test_baselines.py#L45) checks selected CleanRL defaults and horizon rounding. |
+| Greedy action batches | [`test_baselines.py::test_sb3_checkpoint_follows_all_optimizer_epochs`](../tests/test_baselines.py#L70) asserts the SB3 evaluation action shape. [`test_baselines.py::test_cleanrl_defaults_and_same_step_reset`](../tests/test_baselines.py#L45) exercises CleanRL's argmax action path through the vector environment. |
+| Frozen SB3 evaluation normalization | [`test_baselines.py::test_sb3_evaluation_normalization_is_frozen`](../tests/test_baselines.py#L28) checks that `normalize_obs` preserves the observation-statistics count, mean and variance. |
+| SAME_STEP truncation reset | [`test_baselines.py::test_cleanrl_defaults_and_same_step_reset`](../tests/test_baselines.py#L45) checks final-observation delivery and that the next action is executed rather than skipped after a truncation. |
+| SB3 checkpoint-after-update ordering | [`test_baselines.py::test_sb3_checkpoint_follows_all_optimizer_epochs`](../tests/test_baselines.py#L70) checks that the first updated checkpoint follows every optimizer epoch, with the initialization checkpoint preceding training. |
+
+Not covered by dedicated tests:
+
+- Every individual pinned configuration field beyond the selected assertions above.
+- Exact-tie action choices in SB3 and CleanRL policies.
+- Termination-triggered SAME_STEP reset, rather than truncation-triggered reset.
+- CleanRL checkpoint-after-update ordering.
+- Environment cleanup when `Finished` interrupts initialization, rollout or optimization. The SB3 ordering test interrupts at a completed-update checkpoint but does not assert environment closure.
+
+Training measurements use the shared process-start clock and evaluation protocol, not direct timing of a PPO update.
+
