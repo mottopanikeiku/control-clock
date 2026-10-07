@@ -60,8 +60,8 @@ Each cohort also contains a seed-sorted `records` list with `seed`, `solved`, `s
 This comparison does not need a local GPU or the JAX/CUDA dependencies on
 the client. I use Modal client 1.5.3, an account already authenticated with
 `modal setup`, and the pinned image in `modal_app.py`. The final invocation
-runs three fresh processes per task on one L4 with two host CPU cores and
-4 GiB RAM. It keeps the 120/300-second per-seed limits and writes a different
+runs three fresh processes per task on one L4, requesting two host CPU cores
+and 4 GiB RAM. It keeps the 120/300-second per-seed limits and writes a different
 directory from the laptop measurements:
 
 ```sh
