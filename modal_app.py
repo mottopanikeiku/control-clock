@@ -70,7 +70,7 @@ def pilot():
     return run_comparison("pilot")
 
 
-@app.function(image=image, gpu="L4", cpu=2, memory=4096, timeout=1440, max_containers=1)
+@app.function(image=image, gpu="L4", cpu=2, memory=4096, timeout=1380, max_containers=1)
 def final():
     return run_comparison("final")
 
