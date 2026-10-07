@@ -90,11 +90,15 @@ set of equations. Run the equivalence tests with:
 The GPU PPO uses installed **Gymnax 0.0.9** for training only.
 [`test_jax.py`](../tests/test_jax.py) checks fixed internal states against
 Gymnasium 1.2.1: 100 states per task, every discrete action, exact rewards and
-done decisions away from time limits, and observations within
-`atol=2e-5, rtol=2e-5`. It also checks reset ranges, the 500-step limit,
-CartPole's strict position threshold, terminal rewards and Acrobot's angle
-wrapping endpoint. These are local transition comparisons, not bitwise
-trajectory equivalence or a guarantee about arbitrarily close boundaries.
+done decisions away from time limits. I check the equations in float64 at
+`atol=2e-6, rtol=2e-7` and training-precision float32 at
+`atol=1e-4, rtol=1e-5`. A tighter float32 tolerance failed on CPU at
+near-limit Acrobot velocities (a 4.72e-5 velocity discrepancy); I therefore
+added the independent float64 check rather than calling the paths identical.
+The suite also checks reset ranges, the 500-step limit, CartPole's strict
+position threshold, terminal rewards and Acrobot's wrapping endpoint. These
+are local transition comparisons, not bitwise trajectory equivalence or a
+guarantee about arbitrarily close boundaries.
 
 The default physics match: CartPole's Euler update, masses, gravity, timestep,
 force, angle/position limits and one-point terminal reward; Acrobot's book

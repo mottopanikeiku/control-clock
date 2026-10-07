@@ -44,6 +44,7 @@ def worker(args):
                 "configuration": context.configuration,
                 "stop_reason": reason,
                 "devices": [str(device) for device in jax.devices()],
+                "device_kind": [device.device_kind for device in jax.devices()],
                 "versions": {
                     name: importlib.metadata.version(name)
                     for name in ("jax", "jaxlib", "flax", "optax", "gymnax", "gymnasium", "numpy")

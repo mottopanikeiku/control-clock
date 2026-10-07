@@ -20,52 +20,58 @@ make_update = ppo.make_update
 numpy_policy = ppo.numpy_policy
 
 
-def cartpole(values, time=0):
+def cartpole(values, time=0, dtype=jnp.float32):
     return CartPoleState(
-        time=time, **dict(zip(("x", "x_dot", "theta", "theta_dot"), map(jnp.float32, values)))
+        time=time, **dict(zip(("x", "x_dot", "theta", "theta_dot"), map(dtype, values)))
     )
 
 
-def acrobot(values, time=0):
+def acrobot(values, time=0, dtype=jnp.float32):
     return AcrobotState(
         time=time,
         **dict(
             zip(
                 ("joint_angle1", "joint_angle2", "velocity_1", "velocity_2"),
-                map(jnp.float32, values),
+                map(dtype, values),
             )
         ),
     )
 
 
 @pytest.mark.parametrize("task", ["CartPole-v1", "Acrobot-v1"])
-def test_fixed_state_dynamics(task):
-    env, params = gymnax.make(task)
-    reference = gym.make(task).unwrapped
-    rng = np.random.default_rng(2026)
-    max_error = 0.0
-    for _ in range(100):
-        if task == "CartPole-v1":
-            state = rng.uniform([-2.3, -3, -0.2, -4], [2.3, 3, 0.2, 4])
-            gymnax_state = cartpole(state)
-        else:
-            state = rng.uniform([-3.1, -3.1, -12, -27], [3.1, 3.1, 12, 27])
-            gymnax_state = acrobot(state)
-        for action in range(reference.action_space.n):
-            reference.state = state.copy()
+@pytest.mark.parametrize("precision", ["float32", "float64"])
+def test_fixed_state_dynamics(task, precision):
+    # Float64 checks the equations independently of the training precision.
+    # Float32 Acrobot RK4 has larger roundoff at near-limit velocities.
+    with jax.experimental.enable_x64(precision == "float64"):
+        dtype = jnp.float64 if precision == "float64" else jnp.float32
+        env, params = gymnax.make(task)
+        reference = gym.make(task).unwrapped
+        rng = np.random.default_rng(2026)
+        max_error = 0.0
+        for _ in range(100):
             if task == "CartPole-v1":
-                reference.steps_beyond_terminated = None
-            observation, reward, terminated, _, _ = reference.step(action)
-            actual, _, actual_reward, done, _ = env.step_env(
-                jax.random.PRNGKey(1), gymnax_state, action, params
-            )
-            error = float(np.max(np.abs(np.asarray(actual) - observation)))
-            max_error = max(max_error, error)
-            np.testing.assert_allclose(actual, observation, atol=2e-5, rtol=2e-5)
-            assert float(actual_reward) == reward
-            assert bool(done) == terminated
-    print(f"{task}: maximum observation absolute error {max_error:.9g}")
-    reference.close()
+                state = rng.uniform([-2.3, -3, -0.2, -4], [2.3, 3, 0.2, 4])
+                gymnax_state = cartpole(state, dtype=dtype)
+            else:
+                state = rng.uniform([-3.1, -3.1, -12, -27], [3.1, 3.1, 12, 27])
+                gymnax_state = acrobot(state, dtype=dtype)
+            for action in range(reference.action_space.n):
+                reference.state = state.copy()
+                if task == "CartPole-v1":
+                    reference.steps_beyond_terminated = None
+                observation, reward, terminated, _, _ = reference.step(action)
+                actual, _, actual_reward, done, _ = env.step_env(
+                    jax.random.PRNGKey(1), gymnax_state, action, params
+                )
+                error = float(np.max(np.abs(np.asarray(actual) - observation)))
+                max_error = max(max_error, error)
+                atol, rtol = (2e-6, 2e-7) if precision == "float64" else (1e-4, 1e-5)
+                np.testing.assert_allclose(actual, observation, atol=atol, rtol=rtol)
+                assert float(actual_reward) == reward
+                assert bool(done) == terminated
+        print(f"{task} {precision}: maximum observation absolute error {max_error:.9g}")
+        reference.close()
 
 
 @pytest.mark.parametrize("task", ["CartPole-v1", "Acrobot-v1"])
